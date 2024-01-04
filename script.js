@@ -5,7 +5,8 @@ let temp1;
 let nodes;
 let subNodes;
 let subindexStart;
-let subindexEnd
+let subindexEnd;
+let todoListArray = [];
 //Tasks to do 12/28- made sure to reindex after deletion and swap sublists
 class todoList{
     constructor(place, title = "to-do list"){
@@ -13,39 +14,27 @@ class todoList{
         this.place = place;
         this.title = title;
         this.cardArray = [];
+        this.index = todoListArray.length;
 
         this.render();
-        for (var list of this.place.childNodes) {
-            //console.log(list)
-        }
+        todoListArray.push(this)
+        this.index = todoListArray.indexOf(this) + 1
+
     }
 
     addToDo(){
         let text = this.input.value;
-        var index = 0;
-        nodes = Array.prototype.slice.call( this.place.children );
-        index = nodes.indexOf( this.todoListElement );
-        this.index = index
         this.cardArray.push(new Card(text, this.div, this));
     }
 
     render(){
         this.createToDoListElement();
         this.place.append(this.todoListElement);
-        nodes = Array.prototype.slice.call( this.place.children );
-        var index = 0;
-        index = nodes.indexOf( this.todoListElement );
-        /*this.todoListElement.addEventListener('click', ()=>{
-            //this.place.removeChild(this.todoListElement);
-            index = nodes.indexOf( this.todoListElement );
-                
-           });*/
-        this.index = index;
+
         this.todoListElement.draggable = true;
         this.todoListElement.addEventListener('dragstart', () => {
             var parentOfFill = this.todoListElement.parentNode;
-            nodes = Array.prototype.slice.call( this.todoListElement.parentNode.children );
-            indexStart = nodes.indexOf( this.todoListElement);
+            indexStart = todoListArray.indexOf(this)
             temp1 = this.todoListElement.parentNode.childNodes[indexStart]
             setTimeout(() => {
                 return (this.todoListElement.style.visibility = "hidden");
@@ -59,23 +48,22 @@ class todoList{
                 this.todoListElement.style.visibility = "visible";
               }
               this.todoListElement.classList.remove("dragging")
-              var indexTemp = 1
 
               //changing labeled column number after swap
-              for (var thisNode of this.todoListElement.parentNode.children) {
-                thisNode.childNodes[1].innerText = indexTemp;
-                indexTemp += 1;
-              }
+              for (var lis of todoListArray) {
+                lis.index = todoListArray.indexOf(lis) + 1;
+                lis.todoListElement.childNodes[1].innerText = lis.index
+            }
               //Update the index in the subtasks after the swaps
               var subIndex = 1;
-              for (var card of this.todoListElement.parentNode.children[indexStart].querySelectorAll(".card")) {
-                card.childNodes[0].innerText = (indexStart+1).toString() + "." + (subIndex).toString();
+              for (var ca of todoListArray[indexStart].cardArray) {
+                ca.card.childNodes[0].innerText = (indexStart+1).toString() + "." + (subIndex).toString();
                 subIndex += 1;
               }
               subIndex = 1;
-              console.log(this.todoListElement.parentNode.children[indexEnd])
-              for (var card of this.todoListElement.parentNode.children[indexEnd].querySelectorAll(".card")) {
-                card.childNodes[0].innerText = (indexEnd+1).toString() + "." + (subIndex).toString();
+              //console.log(this.todoListElement.parent.children[indexEnd])
+              for (var ca of todoListArray[indexEnd].cardArray) {
+                ca.card.childNodes[0].innerText = (indexEnd+1).toString() + "." + (subIndex).toString();
                 subIndex += 1;
               }
         })
@@ -97,21 +85,38 @@ class todoList{
             if (indexStart < indexEnd) {
                 this.todoListElement.parentNode.insertBefore(temp1, this.todoListElement.parentNode.childNodes[indexEnd])
                 this.todoListElement.parentNode.insertBefore(temp2, this.todoListElement.parentNode.childNodes[indexStart])
+                var temp = todoListArray[indexStart]
+                todoListArray[indexStart] = todoListArray[indexEnd];
+                todoListArray[indexEnd] = temp;
+                todoListArray[indexStart].index = indexEnd
+                todoListArray[indexEnd].index = indexStart
             }
             if (indexEnd < indexStart) {
                 this.todoListElement.parentNode.insertBefore(temp1, this.todoListElement.parentNode.childNodes[indexEnd])
                 this.todoListElement.parentNode.insertBefore(temp2, this.todoListElement.parentNode.childNodes[indexStart + 1])
+                var temp = todoListArray[indexStart]
+                todoListArray[indexStart] = todoListArray[indexEnd];
+                todoListArray[indexEnd] = temp;
+                todoListArray[indexStart].index = indexEnd
+                todoListArray[indexEnd].index = indexStart
             }
         })
         var numb = document.createElement('h2');
-        numb.innerText = (index + 1).toString()
-        this.index = index;
+        numb.innerText = (this.index + 1).toString()
         
         let deleteButton = document.createElement('button');
         deleteButton.innerText = "X";
         deleteButton.classList.add("todoList-delete")
         deleteButton.addEventListener('click', ()=>{
             this.place.removeChild(this.todoListElement);
+            todoListArray.splice(todoListArray.indexOf(this), 1);
+            for (var lis of todoListArray) {
+                lis.index = todoListArray.indexOf(lis) + 1;
+                lis.todoListElement.childNodes[1].innerText = lis.index
+                for (var subter of lis.cardArray) {
+                    subter.card.childNodes[0].innerText = (lis.index).toString() + "." + (subter.index).toString();
+                }
+            }
         });
 
         this.todoListElement.prepend(numb);
@@ -168,7 +173,9 @@ class Card{
             description: "Click to write a description...",
             comments: []
         }
+        this.index = this.todoList.cardArray.length + 1
         this.render();
+
     }
 
     render(){
@@ -180,7 +187,7 @@ class Card{
             }
         });
         this.h3 = document.createElement('h3')
-        this.h3.innerText = (this.todoList.index+1).toString() + "."+(this.todoList.cardArray.length + 1).toString()
+        this.h3.innerText = (this.todoList.index).toString() + "."+(this.index).toString()
 
         this.p = document.createElement('p');
         this.p.innerText = this.state.text;
@@ -198,28 +205,27 @@ class Card{
         this.card.draggable = true;
         this.card.addEventListener('dragstart', (e) => {
             e.stopPropagation();
-            var parentOfFill = this.card.parentNode;
-            subNodes = Array.prototype.slice.call( this.card.parentNode.children );
-            subindexStart = subNodes.indexOf( this.card);
-            temp1 = this.card.parentNode.childNodes[subindexStart]
+            console.log("cardi",this.todoList.cardArray)
+            subindexStart = this.todoList.cardArray.indexOf(this);
             setTimeout(() => {
                 return (this.card.style.visibility = "hidden");
             }, 0);
             this.card.classList.add("dragging")
         })
 
-        this.card.addEventListener('dragend', () => {
+        this.card.addEventListener('dragend', (e) => {
+            e.stopPropagation();
             var parentOfFill = this.card.parentNode;
             if (this.card.style.visibility === "hidden") {
                 this.card.style.visibility = "visible";
               }
               this.card.classList.remove("dragging")
-              var indexTemp = 1
 
               //changing labeled subtask number after swap
-              for (var thisNode of this.card.parentNode.children) {
-                thisNode.childNodes[0].innerText = (this.todoList.index+1).toString() + "."+ indexTemp;
-                indexTemp += 1;
+              for (var lis of this.todoList.cardArray) {
+                lis.index = this.todoList.cardArray.indexOf(lis) + 1;
+                console.log("Family memories", lis.parentNode);
+                lis.card.childNodes[0].innerText = (this.todoList.index).toString() + "." + (lis.index).toString();
               }
         })
         
@@ -227,23 +233,35 @@ class Card{
             "dragover",
             (event) => {
               // prevent default to allow drop
+              event.stopPropagation();
               event.preventDefault();
             },
             false,
           );
 
         this.card.addEventListener('drop', (e) => {
+            e.stopPropagation();
             e.preventDefault()
-            subNodes = Array.prototype.slice.call( this.card.parentNode.children );
-            subindexEnd = subNodes.indexOf( this.card);
+            temp1 = this.card.parentNode.childNodes[subindexStart];
+            subindexEnd = this.todoList.cardArray.indexOf( this);
             var temp2 = this.card.parentNode.childNodes[subindexEnd]
             if (subindexStart < subindexEnd) {
                 this.card.parentNode.insertBefore(temp1, this.card.parentNode.childNodes[subindexEnd])
                 this.card.parentNode.insertBefore(temp2, this.card.parentNode.childNodes[subindexStart])
+                var temy = this.todoList.cardArray[subindexStart]
+                this.todoList.cardArray[subindexStart] = this.todoList.cardArray[subindexEnd];
+                this.todoList.cardArray[subindexEnd] = temy;
+                this.todoList.cardArray[subindexStart].index = subindexStart
+                this.todoList.cardArray[subindexEnd].index = subindexEnd
             }
             if (subindexEnd < subindexStart) {
                 this.card.parentNode.insertBefore(temp1, this.card.parentNode.childNodes[subindexEnd])
                 this.card.parentNode.insertBefore(temp2, this.card.parentNode.childNodes[subindexStart + 1])
+                var temy = this.todoList.cardArray[subindexStart]
+                this.todoList.cardArray[subindexStart] = this.todoList.cardArray[subindexEnd];
+                this.todoList.cardArray[subindexEnd] = temy;
+                this.todoList.cardArray[subindexStart].index = subindexStart
+                this.todoList.cardArray[subindexEnd].index = subindexEnd
             }
         })
         
@@ -254,6 +272,10 @@ class Card{
         this.card.remove();
         let i = this.todoList.cardArray.indexOf(this);
         this.todoList.cardArray.splice(i,1);
+        for (var subter of this.todoList.cardArray) {
+            subter.index = this.todoList.cardArray.indexOf(subter) + 1
+            subter.card.childNodes[0].innerText = (this.todoList.index).toString() + "." + (subter.index).toString();
+        }
     }
 
     showMenu(){
@@ -430,12 +452,15 @@ addTodoListButton.addEventListener('click',()=>{
    }
 });
 
-addTodoListButton.addEventListener('keypress',(e)=>{
+document.addEventListener('keypress',(e)=>{
 {
+    if (e.key === "Enter") {
+        e.preventDefault();
         if ( addTodoListInput.value.trim() != ""){
             new todoList(root, addTodoListInput.value);
             addTodoListInput.value = "";
         }
+    }
     }
  });
 
